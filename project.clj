@@ -33,7 +33,7 @@
               :source-paths ["src"]
               :compiler {
                 :main lumber_calculator.core
-                :output-to "out/main.min.js"
-                :output-dir "out"
+                :output-to "out-adv/main.min.js"
+                :output-dir "out-adv"
                 :optimizations :advanced
                 :pretty-print false}}]})
