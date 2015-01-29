@@ -16,7 +16,8 @@
 
   :clean-targets ["out/lumber_calculator"
                   "main.js"
-                  "main.min.js"]
+                  "main.min.js"
+                  "main.css"]
 
   :cljsbuild {
     :builds [{:id "dev"
@@ -32,7 +33,7 @@
               :source-paths ["src"]
               :compiler {
                 :main lumber_calculator.core
-                :output-to "out-adv/main.min.js"
-                :output-dir "out-adv"
+                :output-to "out/main.min.js"
+                :output-dir "out"
                 :optimizations :advanced
                 :pretty-print false}}]})
