@@ -1,8 +1,12 @@
 (ns lumber_calculator.core
-  (:require [clojure.browser.repl :as repl]))
+  (:require [om.core :as om :include-macros true]
+            [sablono.core :as html :refer-macros [html]]))
 
-;; (repl/connect "http://localhost:9000/repl")
+(defn widget [data owner]
+  (reify
+    om/IRender
+    (render [this]
+      (html [:h1 (:text data)]))))
 
-(enable-console-print!)
-
-(println "Hello world!")
+(om/root widget {:text "Hello, world!"}
+         {:target (.querySelector js/document "main")})
