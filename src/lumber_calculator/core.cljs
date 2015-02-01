@@ -105,85 +105,85 @@
    :name ""
    :count 1})
 
+(defn handle-update-size [component sizes]
+  (fn [e]
+    (let [value (.. e -target -value)]
+      (merge-transact!
+        component
+        (fn [data]
+           {:size (some #(if (= value (size->id %)) %) sizes)})))))
+
+(defn handle-update-float [component k]
+  (fn [e]
+    (merge-transact!
+      component
+      (fn [data]
+        {k (.parseFloat js/window (.. e -target -value) 10)}))))
+
+;; does a transact! on a cursor, but instead of replacing the value, merges the
+;; result of running the function on the cursor into the existing cursor value.
+(defn merge-transact! [cursor f]
+  (om/transact!
+    cursor
+    (fn [data]
+      (merge data (f data)))))
+
 ;; a single project component piece
 (defcomponent component-view [component owner]
   (render-state [this {:keys [update delete sizes]}]
     (html [:li {:id (:id component)
                 :class "component"}
-           [:select {:class "component-sizes"
+           [:select {:name "component-sizes"
                      :value (size->id (:size component))
-                     :on-input (fn [e]
-                                 (let [v (.. e -target -value)]
-                                   (.log js/console v)
-                                   (put! update
-                                         [component
-                                          {:size (some #(if (= v (size->id %)) %)
-                                                       sizes)}])))}
+                     :on-input (handle-update-size component sizes)}
             ;; list all the possible stock sizes
             (map #(vec [:option {:value (size->id %)}
                         (pretty-size %)])
                  sizes)]
-           [:input {:class "component-name"
+           [:input {:name "component-name"
                     :type "text"
-                    :name "name"
-                    :placeholder "Component Name (Optional)"
                     :value (:name component)
-                    :on-input #(put! update
-                                     [component
-                                      {:name (string/triml (.. % -target -value))}])
-                    :on-blur #(put! update
-                                    [component
-                                     {:name (string/trim (.. % -target -value))}])}]
-           [:input {:class "component-length"
+                    :placeholder "Component Name (Optional)"
+                    :on-input #(merge-transact!
+                                 component
+                                 (fn [data]
+                                   {:name (string/triml
+                                            (.. % -target -value))}))
+                    :on-blur #(merge-transact!
+                                 component
+                                 (fn [data]
+                                   {:name (string/trim
+                                            (.. % -target -value))}))}]
+           [:input {:name "component-length"
                     :type "number"
-                    :name "length"
                     :value (:length component)
-                    :on-input #(put! update
-                                     [component
-                                      {:length (.parseFloat
-                                                 js/window
-                                                 (.. % -target -value)
-                                                 10)}])}]
-           [:input {:class "component-count"
+                    :min 0
+                    :on-input (handle-update-float component :length)}]
+           [:input {:name "component-count"
                     :type "number"
-                    :min 0 :step 1
-                    :name "count"
                     :value (:count component)
-                    :on-input #(put! update
-                                     [component
-                                      {:count (.parseFloat
-                                                js/window
-                                                (.. % -target -value)
-                                                10)}])}]
-           [:button {:on-click #(put! delete component)} "Delete"]])))
+                    :min 0
+                    :step 1
+                    :on-input (handle-update-float component :count)}]
+           [:button {:name "component-delete"
+                     :on-click #(put! delete component)} "Delete"]])))
 
 (defcomponent components-view [app owner]
   (init-state [_]
     {:create (chan)
-     :update (chan)
      :delete (chan)})
 
   (will-mount [_]
     ;; listen for events that modify the components list
     (let [create (om/get-state owner :create)
-          update (om/get-state owner :update)
           delete (om/get-state owner :delete)]
       ;; create
       (go (loop []
             (let [component (<! create)]
               (om/transact! app :components
                             (fn [components]
-                              ;; add a new blank component onto the list
+                              ;; add the new component onto the list
                               (conj components component)))
-              (recur))))
-      ;; update
-      (go (loop []
-            (let [[component attrs] (<! update)]
-              (om/transact! app :components
-                            (fn [components]
-                              (vec (map #(if (= % component)
-                                           (merge % attrs)
-                                           %) components))))
               (recur))))
       ;; delete
       (go (loop []
@@ -193,11 +193,10 @@
                               (vec (remove #(= component %) components))))
               (recur))))))
 
-  (render-state [this {:keys [create update delete]}]
+  (render-state [this {:keys [create delete]}]
     (html [:ul {:class "components"}
            (om/build-all component-view (:components app)
-                         {:init-state {:update update
-                                       :delete delete
+                         {:init-state {:delete delete
                                        :sizes (:sizes app)}})
            [:button {:on-click #(put! create (new-component (:sizes app)))}
             "Add Component"]])))
