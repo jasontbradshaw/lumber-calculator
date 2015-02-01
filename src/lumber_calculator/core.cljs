@@ -44,7 +44,18 @@
 
   ;; components the user has added to their project
   :components []
+
+  ;; the unique sizes present in the user's components, updated automatically
+  :components-sizes #{}
 }))
+
+;; when the user updates their components, update the sizes set
+(add-watch app :components-sizes-updater
+           (fn [_ _ old-state new-state]
+             (let [new-components (:components new-state)]
+               (if-not (= (:components old-state) new-components)
+                 (swap! app assoc :components-sizes
+                        (set (map #(:size %) new-components)))))))
 
 ;; FIXME: remove this!
 (add-watch app :debug-watcher
