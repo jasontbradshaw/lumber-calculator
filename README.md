@@ -1,4 +1,4 @@
-# lumber_calculator
+# lumber-calculator
 
 Determine the smallest amount of lumber you can buy to fulfill a project's
 requirements.
@@ -9,38 +9,28 @@ FIXME: Write a paragraph about the library/project and highlight its goals.
 
 ## Setup
 
-First-time Clojurescript developers, add the following to your bash `.profile`:
+First-time Clojurescript developers, add the following to your bash .profile:
 
-    export LEIN_FAST_TRAMPOLINE=y
+    LEIN_FAST_TRAMPOLINE=y
+    export LEIN_FAST_TRAMPOLINE
     alias cljsbuild="lein trampoline cljsbuild $@"
 
 To avoid compiling ClojureScript for each build, AOT Clojurescript locally in
 your project with the following:
 
-    ./scripts/compile_cljsc
+    lein trampoline run -m clojure.main
+    user=> (compile 'cljs.closure)
+    user=> (compile 'cljs.core)
 
-Subsequent dev builds can use:
+Subsequent builds can use:
 
-    lein cljsbuild auto dev
-
-To start a Node REPL (requires rlwrap):
-
-    ./scripts/repl
-
-To get source map support in the Node REPL:
-
-    lein npm install
+    lein cljsbuild auto
 
 Clean project specific out:
 
-    lein clean
+     lein clean
 
-Optimized builds:
-
-    lein cljsbuild once release
-
-For more info on Cljs compilation, read
-[Waitin'](http://swannodette.github.io/2014/12/22/waitin/).
+For more info, read [Waitin'](http://swannodette.github.io/2014/12/22/waitin/).
 
 ## License
 
