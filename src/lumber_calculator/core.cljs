@@ -3,6 +3,7 @@
   (:require [clojure.string :as string]
             [cljs.core.async :refer [put! chan <!]]
             [om.core :as om :include-macros true]
+            [om-tools.core :refer-macros [defcomponent]]
             [sablono.core :as html :refer-macros [html]]))
 
 (defonce app (atom {
@@ -105,106 +106,100 @@
    :count 1})
 
 ;; a single project component piece
-(defn component-view [component owner]
-  (reify
-    om/IRenderState
-    (render-state [this {:keys [update delete sizes]}]
-      (html [:li {:id (:id component)
-                  :class "component"}
-             [:select {:class "component-sizes"
-                       :value (size->id (:size component))
-                       :on-input (fn [e]
-                                   (let [v (.. e -target -value)]
-                                     (.log js/console v)
-                                     (put! update
-                                           [component
-                                            {:size (some #(if (= v (size->id %)) %)
-                                                         sizes)}])))}
-              ;; list all the possible stock sizes
-              (map #(vec [:option {:value (size->id %)}
-                          (pretty-size %)])
-                   sizes)]
-             [:input {:class "component-name"
-                      :type "text"
-                      :name "name"
-                      :placeholder "Component Name (Optional)"
-                      :value (:name component)
-                      :on-input #(put! update
-                                       [component
-                                        {:name (string/triml (.. % -target -value))}])
-                      :on-blur #(put! update
-                                      [component
-                                       {:name (string/trim (.. % -target -value))}])}]
-             [:input {:class "component-length"
-                      :type "number"
-                      :name "length"
-                      :value (:length component)
-                      :on-input #(put! update
-                                       [component
-                                        {:length (.parseFloat
-                                                   js/window
-                                                   (.. % -target -value)
-                                                   10)}])}]
-             [:input {:class "component-count"
-                      :type "number"
-                      :min 0 :step 1
-                      :name "count"
-                      :value (:count component)
-                      :on-input #(put! update
-                                       [component
-                                        {:count (.parseFloat
-                                                  js/window
-                                                  (.. % -target -value)
-                                                  10)}])}]
-             [:button {:on-click #(put! delete component)} "Delete"]]))))
+(defcomponent component-view [component owner]
+  (render-state [this {:keys [update delete sizes]}]
+    (html [:li {:id (:id component)
+                :class "component"}
+           [:select {:class "component-sizes"
+                     :value (size->id (:size component))
+                     :on-input (fn [e]
+                                 (let [v (.. e -target -value)]
+                                   (.log js/console v)
+                                   (put! update
+                                         [component
+                                          {:size (some #(if (= v (size->id %)) %)
+                                                       sizes)}])))}
+            ;; list all the possible stock sizes
+            (map #(vec [:option {:value (size->id %)}
+                        (pretty-size %)])
+                 sizes)]
+           [:input {:class "component-name"
+                    :type "text"
+                    :name "name"
+                    :placeholder "Component Name (Optional)"
+                    :value (:name component)
+                    :on-input #(put! update
+                                     [component
+                                      {:name (string/triml (.. % -target -value))}])
+                    :on-blur #(put! update
+                                    [component
+                                     {:name (string/trim (.. % -target -value))}])}]
+           [:input {:class "component-length"
+                    :type "number"
+                    :name "length"
+                    :value (:length component)
+                    :on-input #(put! update
+                                     [component
+                                      {:length (.parseFloat
+                                                 js/window
+                                                 (.. % -target -value)
+                                                 10)}])}]
+           [:input {:class "component-count"
+                    :type "number"
+                    :min 0 :step 1
+                    :name "count"
+                    :value (:count component)
+                    :on-input #(put! update
+                                     [component
+                                      {:count (.parseFloat
+                                                js/window
+                                                (.. % -target -value)
+                                                10)}])}]
+           [:button {:on-click #(put! delete component)} "Delete"]])))
 
-(defn components-view [app owner]
-  (reify
-    om/IInitState
-    (init-state [_]
-      {:create (chan)
-       :update (chan)
-       :delete (chan)})
+(defcomponent components-view [app owner]
+  (init-state [_]
+    {:create (chan)
+     :update (chan)
+     :delete (chan)})
 
-    om/IWillMount
-    (will-mount [_]
-      ;; listen for events that modify the components list
-      (let [create (om/get-state owner :create)
-            update (om/get-state owner :update)
-            delete (om/get-state owner :delete)]
-        ;; create
-        (go (loop []
-              (let [component (<! create)]
-                (om/transact! app :components
-                              (fn [components]
-                                ;; add a new blank component onto the list
-                                (conj components component)))
-                (recur))))
-        ;; update
-        (go (loop []
-              (let [[component attrs] (<! update)]
-                (om/transact! app :components
-                              (fn [components]
-                                (vec (map #(if (= % component)
-                                             (merge % attrs)
-                                             %) components))))
-                (recur))))
-        ;; delete
-        (go (loop []
-              (let [component (<! delete)]
-                (om/transact! app :components
-                              (fn [components]
-                                (vec (remove #(= component %) components))))
-                (recur))))))
+  (will-mount [_]
+    ;; listen for events that modify the components list
+    (let [create (om/get-state owner :create)
+          update (om/get-state owner :update)
+          delete (om/get-state owner :delete)]
+      ;; create
+      (go (loop []
+            (let [component (<! create)]
+              (om/transact! app :components
+                            (fn [components]
+                              ;; add a new blank component onto the list
+                              (conj components component)))
+              (recur))))
+      ;; update
+      (go (loop []
+            (let [[component attrs] (<! update)]
+              (om/transact! app :components
+                            (fn [components]
+                              (vec (map #(if (= % component)
+                                           (merge % attrs)
+                                           %) components))))
+              (recur))))
+      ;; delete
+      (go (loop []
+            (let [component (<! delete)]
+              (om/transact! app :components
+                            (fn [components]
+                              (vec (remove #(= component %) components))))
+              (recur))))))
 
-    om/IRenderState
-    (render-state [this {:keys [create update delete]}]
-      (html [:ul {:class "components"}
-             (om/build-all component-view (:components app)
-                           {:init-state {:update update
-                                         :delete delete
-                                         :sizes (:sizes app)}})
-             [:button {:on-click #(put! create (new-component (:sizes app)))}
-              "Add Component"]]))))
+  (render-state [this {:keys [create update delete]}]
+    (html [:ul {:class "components"}
+           (om/build-all component-view (:components app)
+                         {:init-state {:update update
+                                       :delete delete
+                                       :sizes (:sizes app)}})
+           [:button {:on-click #(put! create (new-component (:sizes app)))}
+            "Add Component"]])))
 
 (om/root components-view app {:target root})
