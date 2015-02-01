@@ -158,7 +158,7 @@
                     :type "number"
                     :value (:length component)
                     :min 0
-                    :on-input (handle-update-float component :length)}]
+                    :on-change (handle-update-float component :length)}]
            [:input {:name "component-count"
                     :type "number"
                     :value (:count component)
