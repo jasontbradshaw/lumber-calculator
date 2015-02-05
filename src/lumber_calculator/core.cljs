@@ -6,18 +6,21 @@
             [om-tools.core :refer-macros [defcomponent]]
             [sablono.core :as html :refer-macros [html]]))
 
+;; simple functions for dealing with our size maps and dimension vectors
+(def height first)
+(def width second)
+
+(defn nominal-height [size] (-> size :nominal height))
+(defn nominal-width [size] (-> size :nominal width))
+(defn actual-height [size] (-> size :actual height))
+(defn actual-width [size] (-> size :actual width))
+
 (defonce app (atom {
   ;; available lumber sizes for use when building components, sorted by height
   ;; then width.
-  :sizes (sorted-set-by (fn [a b]
-                          (let [a-height (-> a :nominal first)
-                                a-width (-> a :nominal second)
-                                b-height (-> b :nominal first)
-                                b-width (-> b :nominal second)]
-                            ;; sort first by height, then by width
-                            (if-not (= a-height b-height)
-                              (< a-height b-height)
-                              (< a-width b-width))))
+  :sizes (sorted-set-by #(if (= (nominal-height %) (nominal-height %2))
+                           (< (nominal-width %) (nominal-width %2))
+                           (< (nominal-height %) (nominal-height %2)))
                     {:nominal [1.0 2.0] :actual [0.75 1.5]}
                     {:nominal [1.0 3.0] :actual [0.75 2.5]}
                     {:nominal [1.0 4.0] :actual [0.75 3.5]}
@@ -92,8 +95,8 @@
 (defn pretty-size
   "Turn a size like {:nominal [1.5 4.0]} into \"1½\\\" × 4\\\"\""
   [size]
-  (let [height (first (:nominal size))
-        width (second (:nominal size))
+  (let [height (nominal-height size)
+        width (nominal-width size)
         height-whole (.floor js/Math height)
         height-frac (- height height-whole)
         width-whole (.floor js/Math width)
