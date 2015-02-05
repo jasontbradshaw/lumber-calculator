@@ -15,6 +15,9 @@
 (defn actual-height [size] (-> size :actual height))
 (defn actual-width [size] (-> size :actual width))
 
+(defn feet->inches [f] (* f 12.0))
+(defn inches->feet [i] (/ i 12.0))
+
 (defonce app (atom {
   ;; available lumber sizes for use when building components, sorted by height
   ;; then width.
@@ -55,8 +58,18 @@
                     {:nominal [4.0 4.0] :actual [3.5 3.5]}
                     {:nominal [4.0 6.0] :actual [3.5 5.5]})
 
-  ;; available lumber lengths in feet
-  :lengths (sorted-set 6 8 10 12 14 16 18 20 22 24)
+  ;; available lumber lengths in inches
+  :lengths (sorted-set
+                    (feet->inches 6)
+                    (feet->inches 8)
+                    (feet->inches 10)
+                    (feet->inches 12)
+                    (feet->inches 14)
+                    (feet->inches 16)
+                    (feet->inches 18)
+                    (feet->inches 20)
+                    (feet->inches 22)
+                    (feet->inches 24))
 
   ;; components the user has added to their project
   :components []
@@ -69,6 +82,25 @@
 
 ;; the root element of our application
 (defonce root (.querySelector js/document "main"))
+
+(defn longest
+  "Returns the longest component in a sequence of components, or nil if the
+  sequence is empty."
+  ([components]
+   (longest (first components) (rest components)))
+  ([longest-so-far xs]
+   (let [candidate (first xs)
+         remaining (rest xs)]
+     (cond
+       (nil? longest-so-far) nil
+       (empty? remaining) longest-so-far
+       (< (:length longest-so-far) (:length candidate)) (recur candidate remaining)
+       :else (recur longest-so-far remaining)))))
+
+(defn shortest-stock-fit
+  "Returns the shortest stock length that can contain the given component."
+  [component]
+  (some #(<= (:length component) %) (:lengths @app)))
 
 (defn pretty-fraction
   "Turn a float between 0 and 1 (exclusive of both) into a pretty fraction.
@@ -92,8 +124,8 @@
   ([] (generate-id 16))
   ([length] (apply str (repeatedly length #(rand-nth id-alphabet)))))
 
-(defn pretty-size
-  "Turn a size like {:nominal [1.5 4.0]} into \"1½\\\" × 4\\\"\""
+(defn pretty-size-nominal
+  "Turn a size like '{:nominal [1.5 4.0]}' into '1½\" × 4\"'"
   [size]
   (let [height (nominal-height size)
         width (nominal-width size)
@@ -159,7 +191,7 @@
                      :on-input (handle-update-size component sizes)}
             ;; list all the possible stock sizes
             (map #(vec [:option {:value (size->id %)}
-                        (pretty-size %)])
+                        (pretty-size-nominal %)])
                  sizes)]
            [:input {:name "component-name"
                     :type "text"
