@@ -7,55 +7,57 @@
             [sablono.core :as html :refer-macros [html]]))
 
 (defonce app (atom {
-  ;; available lumber sizes for use when building components
-  :sizes [{:nominal [1.0 2.0] :actual [0.75 1.5]}
-          {:nominal [1.0 3.0] :actual [0.75 2.5]}
-          {:nominal [1.0 4.0] :actual [0.75 3.5]}
-          {:nominal [1.0 5.0] :actual [0.75 4.5]}
-          {:nominal [1.0 6.0] :actual [0.75 5.5]}
-          {:nominal [1.0 7.0] :actual [0.75 6.25]}
-          {:nominal [1.0 8.0] :actual [0.75 7.25]}
-          {:nominal [1.0 10.0] :actual [0.75 9.25]}
-          {:nominal [1.0 12.0] :actual [0.75 11.25]}
+  ;; available lumber sizes for use when building components, sorted by height
+  ;; then width.
+  :sizes (sorted-set-by (fn [a b]
+                          (let [a-height (-> a :nominal first)
+                                a-width (-> a :nominal second)
+                                b-height (-> b :nominal first)
+                                b-width (-> b :nominal second)]
+                            ;; sort first by height, then by width
+                            (if-not (= a-height b-height)
+                              (< a-height b-height)
+                              (< a-width b-width))))
+                    {:nominal [1.0 2.0] :actual [0.75 1.5]}
+                    {:nominal [1.0 3.0] :actual [0.75 2.5]}
+                    {:nominal [1.0 4.0] :actual [0.75 3.5]}
+                    {:nominal [1.0 5.0] :actual [0.75 4.5]}
+                    {:nominal [1.0 6.0] :actual [0.75 5.5]}
+                    {:nominal [1.0 7.0] :actual [0.75 6.25]}
+                    {:nominal [1.0 8.0] :actual [0.75 7.25]}
+                    {:nominal [1.0 10.0] :actual [0.75 9.25]}
+                    {:nominal [1.0 12.0] :actual [0.75 11.25]}
 
-          {:nominal [1.25 4.0] :actual [1.0 3.5]}
-          {:nominal [1.25 6.0] :actual [1.0 5.5]}
-          {:nominal [1.25 8.0] :actual [1.0 7.25]}
-          {:nominal [1.25 10.0] :actual [1.0 9.25]}
-          {:nominal [1.25 12.0] :actual [1.0 11.25]}
+                    {:nominal [1.25 4.0] :actual [1.0 3.5]}
+                    {:nominal [1.25 6.0] :actual [1.0 5.5]}
+                    {:nominal [1.25 8.0] :actual [1.0 7.25]}
+                    {:nominal [1.25 10.0] :actual [1.0 9.25]}
+                    {:nominal [1.25 12.0] :actual [1.0 11.25]}
 
-          {:nominal [1.5 4.0] :actual [1.25 3.5]}
-          {:nominal [1.5 6.0] :actual [1.25 5.5]}
-          {:nominal [1.5 8.0] :actual [1.25 7.25]}
-          {:nominal [1.5 10.0] :actual [1.25 9.25]}
-          {:nominal [1.5 12.0] :actual [1.25 11.25]}
+                    {:nominal [1.5 4.0] :actual [1.25 3.5]}
+                    {:nominal [1.5 6.0] :actual [1.25 5.5]}
+                    {:nominal [1.5 8.0] :actual [1.25 7.25]}
+                    {:nominal [1.5 10.0] :actual [1.25 9.25]}
+                    {:nominal [1.5 12.0] :actual [1.25 11.25]}
 
-          {:nominal [2.0 2.0] :actual [1.5 1.5]}
-          {:nominal [2.0 4.0] :actual [1.5 3.5]}
-          {:nominal [2.0 6.0] :actual [1.5 5.5]}
-          {:nominal [2.0 8.0] :actual [1.5 7.25]}
-          {:nominal [2.0 10.0] :actual [1.5 9.25]}
-          {:nominal [2.0 12.0] :actual [1.5 11.25]}
+                    {:nominal [2.0 2.0] :actual [1.5 1.5]}
+                    {:nominal [2.0 4.0] :actual [1.5 3.5]}
+                    {:nominal [2.0 6.0] :actual [1.5 5.5]}
+                    {:nominal [2.0 8.0] :actual [1.5 7.25]}
+                    {:nominal [2.0 10.0] :actual [1.5 9.25]}
+                    {:nominal [2.0 12.0] :actual [1.5 11.25]}
 
-          {:nominal [3.0 6.0] :actual [2.5 5.5]}
+                    {:nominal [3.0 6.0] :actual [2.5 5.5]}
 
-          {:nominal [4.0 4.0] :actual [3.5 3.5]}
-          {:nominal [4.0 6.0] :actual [3.5 5.5]}]
+                    {:nominal [4.0 4.0] :actual [3.5 3.5]}
+                    {:nominal [4.0 6.0] :actual [3.5 5.5]})
+
+  ;; available lumber lengths in feet
+  :lengths (sorted-set 6 8 10 12 14 16 18 20 22 24)
 
   ;; components the user has added to their project
   :components []
-
-  ;; the unique sizes present in the user's components, updated automatically
-  :components-sizes #{}
 }))
-
-;; when the user updates their components, update the sizes set
-(add-watch app :components-sizes-updater
-           (fn [_ _ old-state new-state]
-             (let [new-components (:components new-state)]
-               (if-not (= (:components old-state) new-components)
-                 (swap! app assoc :components-sizes
-                        (set (map #(:size %) new-components)))))))
 
 ;; FIXME: remove this!
 (add-watch app :debug-watcher
@@ -67,8 +69,8 @@
 
 ;; turn a float between 0 and 1 (exclusive of both) into a pretty fraction.
 ;; supports fractions in increments of 1/8 only, otherwise returns the number
-;; as a string.
-(defn pretty-float [x]
+;; as a floating-point number string.
+(defn pretty-fraction [x]
   (cond (= x (/ 1 8.0)) "⅛"
         (= x (/ 2 8.0)) "¼"
         (= x (/ 3 8.0)) "⅜"
@@ -78,9 +80,9 @@
         (= x (/ 7 8.0)) "⅞"
         :else (str x)))
 
-;; generates and returns a new (hopefully) unique string id of the given length
-;; (default 16 characters). easily-confused characters ('i', 'l', '1', etc.)
-;; are excluded from the generated ids.
+;; generates and returns a new random string id of the given length (default 16
+;; characters). easily-confused characters ('i', 'l', '1', etc.) are excluded
+;; from the generated ids.
 (def ^:const id-alphabet "abcdefghjkmnopqrstuvwxyz023456789")
 (defn generate-id
   ([] (generate-id 16))
@@ -88,20 +90,20 @@
 
 ;; turn a size like {:nominal [1.5 4.0]} into '1½" × 4"'
 (defn pretty-size [size]
-  (let [height (get (:nominal size) 0)
-        width (get (:nominal size) 1)
+  (let [height (first (:nominal size))
+        width (second (:nominal size))
         height-whole (.floor js/Math height)
         height-frac (- height height-whole)
         width-whole (.floor js/Math width)
         width-frac (- width width-whole)]
     (string/join (flatten [height-whole (if (= 0 height-frac)
                                           []
-                                          (pretty-float height-frac))
+                                          (pretty-fraction height-frac))
                            "\""
                            " × "
                            width-whole (if (= 0 width-frac)
                                          []
-                                         (pretty-float width-frac))
+                                         (pretty-fraction width-frac))
                            "\""]))))
 
 ;; give a size an id value
@@ -111,10 +113,18 @@
 ;; returns a blank component using the given sizes (default global sizes)
 (defn new-component [sizes]
   {:id (generate-id)
-   :size (get sizes 0)
+   :size (first sizes)
    :length 0
    :name ""
    :count 1})
+
+;; does a transact! on a cursor, but instead of replacing the value, merges the
+;; result of running the function on the cursor into the existing cursor value.
+(defn merge-transact! [cursor f]
+  (om/transact!
+    cursor
+    (fn [data]
+      (merge data (f data)))))
 
 (defn handle-update-size [component sizes]
   (fn [e]
@@ -130,14 +140,6 @@
       component
       (fn [data]
         {k (.parseFloat js/window (.. e -target -value) 10)}))))
-
-;; does a transact! on a cursor, but instead of replacing the value, merges the
-;; result of running the function on the cursor into the existing cursor value.
-(defn merge-transact! [cursor f]
-  (om/transact!
-    cursor
-    (fn [data]
-      (merge data (f data)))))
 
 ;; a single project component piece
 (defcomponent component-view [component owner]
