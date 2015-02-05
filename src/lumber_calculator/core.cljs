@@ -114,10 +114,10 @@
   (string/join "x" (:nominal size)))
 
 (defn new-component
-  "Returns a blank component map using the given sizes (default global sizes)."
-  [sizes]
+  "Returns blank component map data with the given size."
+  [size]
   {:id (generate-id)
-   :size (first sizes)
+   :size size
    :length 0
    :name ""
    :count 1})
@@ -216,7 +216,7 @@
            (om/build-all component-view (:components app)
                          {:init-state {:delete delete
                                        :sizes (:sizes app)}})
-           [:button {:on-click #(put! create (new-component (:sizes app)))}
+           [:button {:on-click #(put! create (new-component (-> app :sizes first)))}
             "Add Component"]])))
 
 (om/root components-view app {:target root})
