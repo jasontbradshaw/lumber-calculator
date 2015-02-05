@@ -148,7 +148,7 @@
 
 ;; a single project component piece
 (defcomponent component-view [component owner]
-  (render-state [this {:keys [update delete sizes]}]
+  (render-state [this {:keys [delete sizes]}]
     (html [:li {:id (:id component)
                 :class "component"}
            [:select {:name "component-sizes"
