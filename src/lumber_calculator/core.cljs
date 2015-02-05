@@ -67,10 +67,11 @@
 ;; the root element of our application
 (defonce root (.querySelector js/document "main"))
 
-;; turn a float between 0 and 1 (exclusive of both) into a pretty fraction.
-;; supports fractions in increments of 1/8 only, otherwise returns the number
-;; as a floating-point number string.
-(defn pretty-fraction [x]
+(defn pretty-fraction
+  "Turn a float between 0 and 1 (exclusive of both) into a pretty fraction.
+  Supports fractions in increments of 1/8 only, otherwise returns the number as
+  a floating-point number string."
+  [x]
   (cond (= x (/ 1 8.0)) "⅛"
         (= x (/ 2 8.0)) "¼"
         (= x (/ 3 8.0)) "⅜"
@@ -80,16 +81,17 @@
         (= x (/ 7 8.0)) "⅞"
         :else (str x)))
 
-;; generates and returns a new random string id of the given length (default 16
-;; characters). easily-confused characters ('i', 'l', '1', etc.) are excluded
-;; from the generated ids.
 (def ^:const id-alphabet "abcdefghjkmnopqrstuvwxyz023456789")
 (defn generate-id
+  "Generates and returns a new random string id of the given length (default 16
+  characters). Easily-confused characters ('i', 'l', '1', etc.) are excluded
+  from the generated ids."
   ([] (generate-id 16))
   ([length] (apply str (repeatedly length #(rand-nth id-alphabet)))))
 
-;; turn a size like {:nominal [1.5 4.0]} into '1½" × 4"'
-(defn pretty-size [size]
+(defn pretty-size
+  "Turn a size like {:nominal [1.5 4.0]} into \"1½\\\" × 4\\\"\""
+  [size]
   (let [height (first (:nominal size))
         width (second (:nominal size))
         height-whole (.floor js/Math height)
@@ -106,21 +108,24 @@
                                          (pretty-fraction width-frac))
                            "\""]))))
 
-;; give a size an id value
-(defn size->id [size]
+(defn size->id
+  "Create an identifying string id for a given size map."
+  [size]
   (string/join "x" (:nominal size)))
 
-;; returns a blank component using the given sizes (default global sizes)
-(defn new-component [sizes]
+(defn new-component
+  "Returns a blank component map using the given sizes (default global sizes)."
+  [sizes]
   {:id (generate-id)
    :size (first sizes)
    :length 0
    :name ""
    :count 1})
 
-;; does a transact! on a cursor, but instead of replacing the value, merges the
-;; result of running the function on the cursor into the existing cursor value.
-(defn merge-transact! [cursor f]
+(defn merge-transact!
+  "Does a transact! on a cursor, but instead of replacing the value, merges the
+  result of running the function on the cursor into the existing cursor value."
+  [cursor f]
   (om/transact!
     cursor
     (fn [data]
